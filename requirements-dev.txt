@@ -1,0 +1,16 @@
+# Development dependencies for Xenocrates
+# Install with: pip install -r requirements-dev.txt
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0  # Code coverage reports
+
+# Code formatting
+black>=23.0.0  # Code formatter
+
+# Linting
+flake8>=6.0.0  # Style checker
+isort>=5.12.0  # Import sorter
+
+# Type checking (optional, for future use)
+# mypy>=1.0.0

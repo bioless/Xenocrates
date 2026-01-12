@@ -20,15 +20,15 @@ Usage:
 The script automatically detects file format and delimiters.
 """
 
-import sys
+import argparse
 import csv
 import html
-import string
-import argparse
-import os
 import json
-from operator import itemgetter
+import os
+import string
+import sys
 from collections import defaultdict
+from operator import itemgetter
 
 __version__ = "2.0.0"
 
@@ -43,24 +43,24 @@ def detect_delimiter(filename):
     Returns:
         Detected delimiter character ('\t' or ',')
     """
-    with open(filename, 'r', newline='', encoding='utf-8') as f:
+    with open(filename, "r", newline="", encoding="utf-8") as f:
         # Read first line to detect delimiter
         first_line = f.readline()
 
         # Count tabs and commas
-        tab_count = first_line.count('\t')
-        comma_count = first_line.count(',')
+        tab_count = first_line.count("\t")
+        comma_count = first_line.count(",")
 
         # Prefer tabs (TSV) over commas (CSV)
         if tab_count >= comma_count and tab_count > 0:
-            return '\t'
+            return "\t"
         elif comma_count > 0:
             print("Info: Detected comma-delimited file (CSV)", file=sys.stderr)
-            return ','
+            return ","
         else:
             # Default to tab if unclear
             print("Warning: Could not detect delimiter, defaulting to tab", file=sys.stderr)
-            return '\t'
+            return "\t"
 
 
 def detect_file_format(filename):
@@ -79,11 +79,11 @@ def detect_file_format(filename):
     ext = os.path.splitext(filename)[1].lower()
 
     format_map = {
-        '.xlsx': 'excel',
-        '.csv': 'csv',
-        '.tsv': 'tsv',
-        '.json': 'json',
-        '.txt': 'csv',  # Assume CSV/TSV, will auto-detect delimiter
+        ".xlsx": "excel",
+        ".csv": "csv",
+        ".tsv": "tsv",
+        ".json": "json",
+        ".txt": "csv",  # Assume CSV/TSV, will auto-detect delimiter
     }
 
     file_format = format_map.get(ext)
@@ -91,11 +91,8 @@ def detect_file_format(filename):
         return file_format
 
     # Unknown extension - provide helpful error
-    supported = ', '.join(sorted(format_map.keys()))
-    raise ValueError(
-        f"Unsupported file format: '{ext}'\n"
-        f"Supported formats: {supported}"
-    )
+    supported = ", ".join(sorted(format_map.keys()))
+    raise ValueError(f"Unsupported file format: '{ext}'\n" f"Supported formats: {supported}")
 
 
 def normalize_column_names(fieldnames):
@@ -110,11 +107,11 @@ def normalize_column_names(fieldnames):
     """
     # Standard column names (case-sensitive for output)
     standard_names = {
-        'title': 'Title',
-        'book': 'Book',
-        'page': 'Page',
-        'description': 'Description',
-        'course': 'Course'  # Optional
+        "title": "Title",
+        "book": "Book",
+        "page": "Page",
+        "description": "Description",
+        "course": "Course",  # Optional
     }
 
     normalized = {}
@@ -197,7 +194,7 @@ def validate_columns(fieldnames):
     normalized = normalize_column_names(fieldnames)
 
     # Required columns
-    required = {'Title', 'Book', 'Page', 'Description'}
+    required = {"Title", "Book", "Page", "Description"}
 
     # Check what's present
     present = set(normalized.keys())
@@ -265,7 +262,7 @@ def read_csv_data(filename):
     delimiter = detect_delimiter(filename)
 
     # Use newline='' for cross-platform CSV compatibility (Mac/Windows/Linux)
-    with open(filename, 'r', newline='', encoding='utf-8') as f:
+    with open(filename, "r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter=delimiter)
 
         # Validate required columns are present
@@ -275,7 +272,7 @@ def read_csv_data(filename):
                 raise ValueError(error_msg)
 
             # Check if optional Course column is present
-            has_course_column = 'Course' in column_map
+            has_course_column = "Course" in column_map
             if has_course_column:
                 print("Info: Course column detected (GSE mode)", file=sys.stderr)
 
@@ -283,18 +280,18 @@ def read_csv_data(filename):
             try:
                 # Use case-insensitive column access via normalized map
                 # Get the actual column name from user's file
-                title_col = column_map.get('Title', 'Title')
-                desc_col = column_map.get('Description', 'Description')
-                page_col = column_map.get('Page', 'Page')
-                book_col = column_map.get('Book', 'Book')
-                course_col = column_map.get('Course', 'Course')
+                title_col = column_map.get("Title", "Title")
+                desc_col = column_map.get("Description", "Description")
+                page_col = column_map.get("Page", "Page")
+                book_col = column_map.get("Book", "Book")
+                course_col = column_map.get("Course", "Course")
 
                 # Extract values
-                title = row.get(title_col, '').strip()
-                description = row.get(desc_col, '').strip()
-                page = row.get(page_col, '').strip()
-                book = row.get(book_col, '').strip()
-                course = row.get(course_col, '').strip() if has_course_column else ''
+                title = row.get(title_col, "").strip()
+                description = row.get(desc_col, "").strip()
+                page = row.get(page_col, "").strip()
+                book = row.get(book_col, "").strip()
+                course = row.get(course_col, "").strip() if has_course_column else ""
 
                 # Skip entries with empty titles but warn user
                 if not title:
@@ -306,13 +303,15 @@ def read_csv_data(filename):
                 duplicate_tracker[dup_key].append(row_num)
 
                 # Store with uppercase title for sorting, original values for display
-                index.append([
-                    title.upper(),  # For case-insensitive sorting
-                    description,
-                    page,
-                    book,
-                    course  # Will be empty string if no Course column
-                ])
+                index.append(
+                    [
+                        title.upper(),  # For case-insensitive sorting
+                        description,
+                        page,
+                        book,
+                        course,  # Will be empty string if no Course column
+                    ]
+                )
 
             except KeyError as e:
                 # Handle missing column
@@ -334,10 +333,15 @@ def read_csv_data(filename):
         for dup_key, rows in list(duplicates.items())[:5]:  # Show first 5
             if has_course_column:
                 title, book, page, course = dup_key
-                print(f"  - '{title}' (Book: {book}, Course: {course}, Page: {page}) on rows: {', '.join(map(str, rows))}", file=sys.stderr)
+                print(
+                    f"  - '{title}' (Book: {book}, Course: {course}, Page: {page}) on rows: {', '.join(map(str, rows))}",  # noqa: E501
+                    file=sys.stderr,
+                )
             else:
                 title, book, page = dup_key
-                print(f"  - '{title}' (Book: {book}, Page: {page}) on rows: {', '.join(map(str, rows))}", file=sys.stderr)
+                print(
+                    f"  - '{title}' (Book: {book}, Page: {page}) on rows: {', '.join(map(str, rows))}", file=sys.stderr
+                )
         if len(duplicates) > 5:
             print(f"  ... and {len(duplicates) - 5} more duplicates", file=sys.stderr)
 
@@ -384,7 +388,7 @@ def read_excel_data(filename):
         raise ValueError("Excel file appears to be empty (no header row)")
 
     # Convert headers to strings, filter out None values
-    headers = [str(h).strip() if h is not None else '' for h in headers_row]
+    headers = [str(h).strip() if h is not None else "" for h in headers_row]
     headers = [h for h in headers if h]  # Remove empty strings
 
     # Validate columns using existing validation logic
@@ -393,16 +397,16 @@ def read_excel_data(filename):
         raise ValueError(error_msg)
 
     # Check if optional Course column is present
-    has_course_column = 'Course' in column_map
+    has_course_column = "Course" in column_map
     if has_course_column:
         print("Info: Course column detected (GSE mode)", file=sys.stderr)
 
     # Get column indices for required fields
-    title_idx = headers.index(column_map.get('Title', 'Title'))
-    desc_idx = headers.index(column_map.get('Description', 'Description'))
-    page_idx = headers.index(column_map.get('Page', 'Page'))
-    book_idx = headers.index(column_map.get('Book', 'Book'))
-    course_idx = headers.index(column_map.get('Course', 'Course')) if has_course_column else None
+    title_idx = headers.index(column_map.get("Title", "Title"))
+    desc_idx = headers.index(column_map.get("Description", "Description"))
+    page_idx = headers.index(column_map.get("Page", "Page"))
+    book_idx = headers.index(column_map.get("Book", "Book"))
+    course_idx = headers.index(column_map.get("Course", "Course")) if has_course_column else None
 
     # Parse data rows
     index = []
@@ -412,20 +416,20 @@ def read_excel_data(filename):
     for row_num, row_values in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
         try:
             # Handle empty rows or rows shorter than expected
-            if not row_values or all(v is None or str(v).strip() == '' for v in row_values):
+            if not row_values or all(v is None or str(v).strip() == "" for v in row_values):
                 continue
 
             # Extract values, converting None to empty string
             def get_cell_value(idx):
                 if idx < len(row_values) and row_values[idx] is not None:
                     return str(row_values[idx]).strip()
-                return ''
+                return ""
 
             title = get_cell_value(title_idx)
             description = get_cell_value(desc_idx)
             page = get_cell_value(page_idx)
             book = get_cell_value(book_idx)
-            course = get_cell_value(course_idx) if course_idx is not None else ''
+            course = get_cell_value(course_idx) if course_idx is not None else ""
 
             # Skip entries with empty titles
             if not title:
@@ -437,13 +441,7 @@ def read_excel_data(filename):
             duplicate_tracker[dup_key].append(row_num)
 
             # Store entry
-            index.append([
-                title.upper(),  # For case-insensitive sorting
-                description,
-                page,
-                book,
-                course
-            ])
+            index.append([title.upper(), description, page, book, course])  # For case-insensitive sorting
 
         except Exception as e:
             print(f"Warning: Error parsing Excel row {row_num}: {e}, skipping", file=sys.stderr)
@@ -463,10 +461,15 @@ def read_excel_data(filename):
         for dup_key, rows in list(duplicates.items())[:5]:
             if has_course_column:
                 title, book, page, course = dup_key
-                print(f"  - '{title}' (Book: {book}, Course: {course}, Page: {page}) on rows: {', '.join(map(str, rows))}", file=sys.stderr)
+                print(
+                    f"  - '{title}' (Book: {book}, Course: {course}, Page: {page}) on rows: {', '.join(map(str, rows))}",  # noqa: E501
+                    file=sys.stderr,
+                )
             else:
                 title, book, page = dup_key
-                print(f"  - '{title}' (Book: {book}, Page: {page}) on rows: {', '.join(map(str, rows))}", file=sys.stderr)
+                print(
+                    f"  - '{title}' (Book: {book}, Page: {page}) on rows: {', '.join(map(str, rows))}", file=sys.stderr
+                )
         if len(duplicates) > 5:
             print(f"  ... and {len(duplicates) - 5} more duplicates", file=sys.stderr)
 
@@ -491,7 +494,7 @@ def read_json_data(filename):
     """
     # Load JSON file
     try:
-        with open(filename, 'r', encoding='utf-8') as f:
+        with open(filename, "r", encoding="utf-8") as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON format: {e}")
@@ -500,12 +503,12 @@ def read_json_data(filename):
     # 1. {"entries": [...]} - wrapped format (recommended)
     # 2. [...] - direct array format
     if isinstance(data, dict):
-        if 'entries' not in data:
+        if "entries" not in data:
             raise ValueError(
                 "JSON object must contain 'entries' key with array of entries.\n"
-                "Example: {\"entries\": [{\"Title\": \"...\", \"Description\": \"...\", ...}]}"
+                'Example: {"entries": [{"Title": "...", "Description": "...", ...}]}'
             )
-        entries = data['entries']
+        entries = data["entries"]
     elif isinstance(data, list):
         entries = data
     else:
@@ -531,16 +534,16 @@ def read_json_data(filename):
         raise ValueError(error_msg)
 
     # Check if optional Course column is present
-    has_course_column = 'Course' in column_map
+    has_course_column = "Course" in column_map
     if has_course_column:
         print("Info: Course column detected (GSE mode)", file=sys.stderr)
 
     # Get actual field names from user's JSON
-    title_field = column_map.get('Title', 'Title')
-    desc_field = column_map.get('Description', 'Description')
-    page_field = column_map.get('Page', 'Page')
-    book_field = column_map.get('Book', 'Book')
-    course_field = column_map.get('Course', 'Course')
+    title_field = column_map.get("Title", "Title")
+    desc_field = column_map.get("Description", "Description")
+    page_field = column_map.get("Page", "Page")
+    book_field = column_map.get("Book", "Book")
+    course_field = column_map.get("Course", "Course")
 
     # Parse entries
     index = []
@@ -554,11 +557,11 @@ def read_json_data(filename):
                 continue
 
             # Extract values (case-insensitive field access via column_map)
-            title = str(entry.get(title_field, '')).strip()
-            description = str(entry.get(desc_field, '')).strip()
-            page = str(entry.get(page_field, '')).strip()
-            book = str(entry.get(book_field, '')).strip()
-            course = str(entry.get(course_field, '')).strip() if has_course_column else ''
+            title = str(entry.get(title_field, "")).strip()
+            description = str(entry.get(desc_field, "")).strip()
+            page = str(entry.get(page_field, "")).strip()
+            book = str(entry.get(book_field, "")).strip()
+            course = str(entry.get(course_field, "")).strip() if has_course_column else ""
 
             # Skip entries with empty titles
             if not title:
@@ -570,13 +573,7 @@ def read_json_data(filename):
             duplicate_tracker[dup_key].append(entry_num)
 
             # Store entry
-            index.append([
-                title.upper(),  # For case-insensitive sorting
-                description,
-                page,
-                book,
-                course
-            ])
+            index.append([title.upper(), description, page, book, course])  # For case-insensitive sorting
 
         except Exception as e:
             print(f"Warning: Error parsing JSON entry {entry_num}: {e}, skipping", file=sys.stderr)
@@ -593,10 +590,16 @@ def read_json_data(filename):
         for dup_key, entries_list in list(duplicates.items())[:5]:
             if has_course_column:
                 title, book, page, course = dup_key
-                print(f"  - '{title}' (Book: {book}, Course: {course}, Page: {page}) in entries: {', '.join(map(str, entries_list))}", file=sys.stderr)
+                print(
+                    f"  - '{title}' (Book: {book}, Course: {course}, Page: {page}) in entries: {', '.join(map(str, entries_list))}",  # noqa: E501
+                    file=sys.stderr,
+                )
             else:
                 title, book, page = dup_key
-                print(f"  - '{title}' (Book: {book}, Page: {page}) in entries: {', '.join(map(str, entries_list))}", file=sys.stderr)
+                print(
+                    f"  - '{title}' (Book: {book}, Page: {page}) in entries: {', '.join(map(str, entries_list))}",
+                    file=sys.stderr,
+                )
         if len(duplicates) > 5:
             print(f"  ... and {len(duplicates) - 5} more duplicates", file=sys.stderr)
 
@@ -625,10 +628,10 @@ def read_input_file(filename):
 
     # Dispatch to appropriate reader
     readers = {
-        'csv': read_csv_data,
-        'tsv': read_csv_data,  # Same handler as CSV
-        'excel': read_excel_data,
-        'json': read_json_data,
+        "csv": read_csv_data,
+        "tsv": read_csv_data,  # Same handler as CSV
+        "excel": read_excel_data,
+        "json": read_json_data,
     }
 
     reader = readers[file_format]
@@ -647,7 +650,7 @@ def get_section_header(character):
     """
     # Map A-Z to section numbers 1-26
     if character in string.ascii_uppercase:
-        section_num = ord(character) - ord('A') + 1
+        section_num = ord(character) - ord("A") + 1
         header_label = f"{character}{character.lower()}"
     else:
         # Numbers and special characters
@@ -663,7 +666,7 @@ def get_section_header(character):
     return section_num, header_html
 
 
-def print_entry(title, description, page, book, course=''):
+def print_entry(title, description, page, book, course=""):
     """
     Print a single index entry in HTML format to stdout.
 
@@ -694,10 +697,10 @@ def print_entry_to_file(title, description, page, book, course, output):
     desc_escaped = html.escape(description, quote=True)
     page_escaped = html.escape(page, quote=True)
     book_escaped = html.escape(book, quote=True)
-    course_escaped = html.escape(course, quote=True) if course else ''
+    course_escaped = html.escape(course, quote=True) if course else ""
 
     # Print entry in format
-    print(f"<span class=topic><b><span style='color:blue'>", file=output)
+    print("<span class=topic><b><span style='color:blue'>", file=output)
     print(f" {title_escaped} ", file=output)
     print("</span></b></span><span style='color:black'>&nbsp;", file=output)
 
@@ -729,7 +732,7 @@ def generate_index(filename, output_file=None):
     index = sorted(index, key=itemgetter(0))
 
     # Redirect output to file if specified
-    output = open(output_file, 'w', encoding='utf-8') if output_file else sys.stdout
+    output = open(output_file, "w", encoding="utf-8") if output_file else sys.stdout
 
     try:
         # Track current section to avoid duplicate headers
@@ -740,7 +743,7 @@ def generate_index(filename, output_file=None):
             title_upper, description, page, book, course = entry
 
             # Get first character (strip quotes if present)
-            first_char = title_upper.strip('"').lstrip('"')[0] if title_upper else ''
+            first_char = title_upper.strip('"').lstrip('"')[0] if title_upper else ""
 
             if not first_char:
                 continue
@@ -767,27 +770,20 @@ def generate_index(filename, output_file=None):
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description='Xenocrates - GIAC Certification Exam Index Generator',
-        epilog='Examples: xenocrates.py notes.tsv index.html | xenocrates.py notes.xlsx index.html | xenocrates.py notes.json index.html'
+        description="Xenocrates - GIAC Certification Exam Index Generator",
+        epilog="Examples: xenocrates.py notes.tsv index.html | xenocrates.py notes.xlsx index.html | xenocrates.py notes.json index.html",  # noqa: E501
     )
 
     parser.add_argument(
-        'input_file',
-        help='Input file (.csv, .tsv, .xlsx, .json) with columns: Title, Description, Page, Book, Course (optional)'
+        "input_file",
+        help="Input file (.csv, .tsv, .xlsx, .json) with columns: Title, Description, Page, Book, Course (optional)",
     )
 
     parser.add_argument(
-        'output_file',
-        nargs='?',
-        default=None,
-        help='Output HTML file (default: print to stdout for redirection)'
+        "output_file", nargs="?", default=None, help="Output HTML file (default: print to stdout for redirection)"
     )
 
-    parser.add_argument(
-        '--version',
-        action='version',
-        version=f'Xenocrates {__version__}'
-    )
+    parser.add_argument("--version", action="version", version=f"Xenocrates {__version__}")
 
     args = parser.parse_args()
 
