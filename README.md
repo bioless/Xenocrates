@@ -335,3 +335,5 @@ Original tool by @0sm0s1z. Modernization updates by community contributors.
 
 Found a bug? Have a suggestion? Please open an issue on GitHub!
 
+**For developers:** See [docs/dev/DEVELOPMENT.md](docs/dev/DEVELOPMENT.md) for development setup, testing, and code quality guidelines.
+
