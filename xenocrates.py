@@ -2,15 +2,22 @@
 """
 Xenocrates - GIAC Certification Exam Index Generator
 
-Processes CSV/TSV study notes and generates an alphabetically sorted
+Processes study notes and generates an alphabetically sorted
 HTML index for easy reference during GIAC certification exams.
+
+Supported Input Formats:
+    - CSV/TSV (.csv, .tsv, .txt) - Comma or tab-delimited files
+    - Excel (.xlsx) - Excel 2010+ spreadsheets
+    - JSON (.json) - Structured JSON data
 
 Usage:
     python xenocrates.py input_file.tsv output_file.html
     python xenocrates.py input_file.csv output_file.html
+    python xenocrates.py input_file.xlsx output_file.html
+    python xenocrates.py input_file.json output_file.html
     python xenocrates.py input_file.tsv > output.html  (legacy mode)
 
-The script automatically detects tab or comma delimiters.
+The script automatically detects file format and delimiters.
 """
 
 import sys
@@ -18,6 +25,8 @@ import csv
 import html
 import string
 import argparse
+import os
+import json
 from operator import itemgetter
 from collections import defaultdict
 
@@ -52,6 +61,41 @@ def detect_delimiter(filename):
             # Default to tab if unclear
             print("Warning: Could not detect delimiter, defaulting to tab", file=sys.stderr)
             return '\t'
+
+
+def detect_file_format(filename):
+    """
+    Detect input file format from extension.
+
+    Args:
+        filename: Path to input file
+
+    Returns:
+        str: Format identifier ('csv', 'tsv', 'excel', 'json')
+
+    Raises:
+        ValueError: If extension is not recognized
+    """
+    ext = os.path.splitext(filename)[1].lower()
+
+    format_map = {
+        '.xlsx': 'excel',
+        '.csv': 'csv',
+        '.tsv': 'tsv',
+        '.json': 'json',
+        '.txt': 'csv',  # Assume CSV/TSV, will auto-detect delimiter
+    }
+
+    file_format = format_map.get(ext)
+    if file_format:
+        return file_format
+
+    # Unknown extension - provide helpful error
+    supported = ', '.join(sorted(format_map.keys()))
+    raise ValueError(
+        f"Unsupported file format: '{ext}'\n"
+        f"Supported formats: {supported}"
+    )
 
 
 def normalize_column_names(fieldnames):
@@ -195,7 +239,7 @@ def validate_columns(fieldnames):
     return False, "\n".join(error_parts), {}
 
 
-def read_index_data(filename):
+def read_csv_data(filename):
     """
     Read and parse CSV/TSV file into index entries.
 
@@ -203,7 +247,9 @@ def read_index_data(filename):
         filename: Path to CSV/TSV file with columns: Title, Description, Page, Book, Course (optional)
 
     Returns:
-        List of [title_upper, description, page, book, course] entries
+        Tuple of (index_data, has_course_column)
+            - index_data: List of [title_upper, description, page, book, course]
+            - has_course_column: Boolean indicating if Course column present
 
     Raises:
         FileNotFoundError: If input file doesn't exist
@@ -298,6 +344,297 @@ def read_index_data(filename):
     return index, has_course_column
 
 
+def read_excel_data(filename):
+    """
+    Read and parse Excel file (.xlsx) into index entries.
+
+    Args:
+        filename: Path to Excel file (.xlsx)
+
+    Returns:
+        Tuple of (index_data, has_course_column)
+            - index_data: List of [title_upper, description, page, book, course]
+            - has_course_column: Boolean indicating if Course column present
+
+    Raises:
+        ImportError: If openpyxl not installed
+        ValueError: If required columns missing or validation fails
+        Exception: If Excel file cannot be read
+    """
+    # Try to import openpyxl with helpful error message
+    try:
+        from openpyxl import load_workbook
+    except ImportError:
+        raise ImportError(
+            "Excel file support requires the 'openpyxl' library.\n"
+            "Install with: pip install openpyxl\n\n"
+            "Alternatively, export your Excel file to CSV format."
+        )
+
+    # Load Excel workbook (read-only mode for performance)
+    try:
+        wb = load_workbook(filename, read_only=True, data_only=True)
+        ws = wb.active  # Use first/active worksheet
+    except Exception as e:
+        raise ValueError(f"Unable to read Excel file: {e}")
+
+    # Read headers from first row
+    headers_row = next(ws.iter_rows(min_row=1, max_row=1, values_only=True), None)
+    if not headers_row:
+        raise ValueError("Excel file appears to be empty (no header row)")
+
+    # Convert headers to strings, filter out None values
+    headers = [str(h).strip() if h is not None else '' for h in headers_row]
+    headers = [h for h in headers if h]  # Remove empty strings
+
+    # Validate columns using existing validation logic
+    is_valid, error_msg, column_map = validate_columns(headers)
+    if not is_valid:
+        raise ValueError(error_msg)
+
+    # Check if optional Course column is present
+    has_course_column = 'Course' in column_map
+    if has_course_column:
+        print("Info: Course column detected (GSE mode)", file=sys.stderr)
+
+    # Get column indices for required fields
+    title_idx = headers.index(column_map.get('Title', 'Title'))
+    desc_idx = headers.index(column_map.get('Description', 'Description'))
+    page_idx = headers.index(column_map.get('Page', 'Page'))
+    book_idx = headers.index(column_map.get('Book', 'Book'))
+    course_idx = headers.index(column_map.get('Course', 'Course')) if has_course_column else None
+
+    # Parse data rows
+    index = []
+    empty_title_count = 0
+    duplicate_tracker = defaultdict(list)
+
+    for row_num, row_values in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+        try:
+            # Handle empty rows or rows shorter than expected
+            if not row_values or all(v is None or str(v).strip() == '' for v in row_values):
+                continue
+
+            # Extract values, converting None to empty string
+            def get_cell_value(idx):
+                if idx < len(row_values) and row_values[idx] is not None:
+                    return str(row_values[idx]).strip()
+                return ''
+
+            title = get_cell_value(title_idx)
+            description = get_cell_value(desc_idx)
+            page = get_cell_value(page_idx)
+            book = get_cell_value(book_idx)
+            course = get_cell_value(course_idx) if course_idx is not None else ''
+
+            # Skip entries with empty titles
+            if not title:
+                empty_title_count += 1
+                continue
+
+            # Track duplicates
+            dup_key = (title.upper(), book, page, course) if has_course_column else (title.upper(), book, page)
+            duplicate_tracker[dup_key].append(row_num)
+
+            # Store entry
+            index.append([
+                title.upper(),  # For case-insensitive sorting
+                description,
+                page,
+                book,
+                course
+            ])
+
+        except Exception as e:
+            print(f"Warning: Error parsing Excel row {row_num}: {e}, skipping", file=sys.stderr)
+            continue
+
+    # Close workbook
+    wb.close()
+
+    # Report statistics (reuse same logic as CSV)
+    if empty_title_count > 0:
+        print(f"Info: Skipped {empty_title_count} entries with empty titles", file=sys.stderr)
+
+    # Report duplicates
+    duplicates = {k: v for k, v in duplicate_tracker.items() if len(v) > 1}
+    if duplicates:
+        print(f"Warning: Found {len(duplicates)} duplicate entries:", file=sys.stderr)
+        for dup_key, rows in list(duplicates.items())[:5]:
+            if has_course_column:
+                title, book, page, course = dup_key
+                print(f"  - '{title}' (Book: {book}, Course: {course}, Page: {page}) on rows: {', '.join(map(str, rows))}", file=sys.stderr)
+            else:
+                title, book, page = dup_key
+                print(f"  - '{title}' (Book: {book}, Page: {page}) on rows: {', '.join(map(str, rows))}", file=sys.stderr)
+        if len(duplicates) > 5:
+            print(f"  ... and {len(duplicates) - 5} more duplicates", file=sys.stderr)
+
+    return index, has_course_column
+
+
+def read_json_data(filename):
+    """
+    Read and parse JSON file into index entries.
+
+    Args:
+        filename: Path to JSON file
+
+    Returns:
+        Tuple of (index_data, has_course_column)
+            - index_data: List of [title_upper, description, page, book, course]
+            - has_course_column: Boolean indicating if Course column present
+
+    Raises:
+        json.JSONDecodeError: If file is not valid JSON
+        ValueError: If JSON structure invalid or required fields missing
+    """
+    # Load JSON file
+    try:
+        with open(filename, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON format: {e}")
+
+    # Support two formats:
+    # 1. {"entries": [...]} - wrapped format (recommended)
+    # 2. [...] - direct array format
+    if isinstance(data, dict):
+        if 'entries' not in data:
+            raise ValueError(
+                "JSON object must contain 'entries' key with array of entries.\n"
+                "Example: {\"entries\": [{\"Title\": \"...\", \"Description\": \"...\", ...}]}"
+            )
+        entries = data['entries']
+    elif isinstance(data, list):
+        entries = data
+    else:
+        raise ValueError("JSON must be either an object with 'entries' key or an array of entries")
+
+    if not entries:
+        raise ValueError("JSON file contains no entries")
+
+    if not isinstance(entries, list):
+        raise ValueError("Entries must be an array/list")
+
+    # Validate first entry has required fields
+    if not entries or not isinstance(entries[0], dict):
+        raise ValueError("Each entry must be a JSON object with Title, Description, Page, Book fields")
+
+    # Get field names from first entry (case-insensitive)
+    first_entry = entries[0]
+    fieldnames = list(first_entry.keys())
+
+    # Validate columns using existing validation logic
+    is_valid, error_msg, column_map = validate_columns(fieldnames)
+    if not is_valid:
+        raise ValueError(error_msg)
+
+    # Check if optional Course column is present
+    has_course_column = 'Course' in column_map
+    if has_course_column:
+        print("Info: Course column detected (GSE mode)", file=sys.stderr)
+
+    # Get actual field names from user's JSON
+    title_field = column_map.get('Title', 'Title')
+    desc_field = column_map.get('Description', 'Description')
+    page_field = column_map.get('Page', 'Page')
+    book_field = column_map.get('Book', 'Book')
+    course_field = column_map.get('Course', 'Course')
+
+    # Parse entries
+    index = []
+    empty_title_count = 0
+    duplicate_tracker = defaultdict(list)
+
+    for entry_num, entry in enumerate(entries, start=1):
+        try:
+            if not isinstance(entry, dict):
+                print(f"Warning: Entry {entry_num} is not a JSON object, skipping", file=sys.stderr)
+                continue
+
+            # Extract values (case-insensitive field access via column_map)
+            title = str(entry.get(title_field, '')).strip()
+            description = str(entry.get(desc_field, '')).strip()
+            page = str(entry.get(page_field, '')).strip()
+            book = str(entry.get(book_field, '')).strip()
+            course = str(entry.get(course_field, '')).strip() if has_course_column else ''
+
+            # Skip entries with empty titles
+            if not title:
+                empty_title_count += 1
+                continue
+
+            # Track duplicates
+            dup_key = (title.upper(), book, page, course) if has_course_column else (title.upper(), book, page)
+            duplicate_tracker[dup_key].append(entry_num)
+
+            # Store entry
+            index.append([
+                title.upper(),  # For case-insensitive sorting
+                description,
+                page,
+                book,
+                course
+            ])
+
+        except Exception as e:
+            print(f"Warning: Error parsing JSON entry {entry_num}: {e}, skipping", file=sys.stderr)
+            continue
+
+    # Report statistics
+    if empty_title_count > 0:
+        print(f"Info: Skipped {empty_title_count} entries with empty titles", file=sys.stderr)
+
+    # Report duplicates
+    duplicates = {k: v for k, v in duplicate_tracker.items() if len(v) > 1}
+    if duplicates:
+        print(f"Warning: Found {len(duplicates)} duplicate entries:", file=sys.stderr)
+        for dup_key, entries_list in list(duplicates.items())[:5]:
+            if has_course_column:
+                title, book, page, course = dup_key
+                print(f"  - '{title}' (Book: {book}, Course: {course}, Page: {page}) in entries: {', '.join(map(str, entries_list))}", file=sys.stderr)
+            else:
+                title, book, page = dup_key
+                print(f"  - '{title}' (Book: {book}, Page: {page}) in entries: {', '.join(map(str, entries_list))}", file=sys.stderr)
+        if len(duplicates) > 5:
+            print(f"  ... and {len(duplicates) - 5} more duplicates", file=sys.stderr)
+
+    return index, has_course_column
+
+
+def read_input_file(filename):
+    """
+    Read input file in any supported format (CSV/TSV/Excel/JSON).
+    Unified entry point that dispatches to format-specific readers.
+
+    Args:
+        filename: Path to input file
+
+    Returns:
+        Tuple of (index_data, has_course_column)
+            - index_data: List of [title_upper, description, page, book, course]
+            - has_course_column: Boolean indicating if Course column present
+
+    Raises:
+        ValueError: If format unsupported or file invalid
+        FileNotFoundError: If file doesn't exist
+    """
+    # Detect file format from extension
+    file_format = detect_file_format(filename)
+
+    # Dispatch to appropriate reader
+    readers = {
+        'csv': read_csv_data,
+        'tsv': read_csv_data,  # Same handler as CSV
+        'excel': read_excel_data,
+        'json': read_json_data,
+    }
+
+    reader = readers[file_format]
+    return reader(filename)
+
+
 def get_section_header(character):
     """
     Get the HTML section header for a given starting character.
@@ -375,14 +712,14 @@ def print_entry_to_file(title, description, page, book, course, output):
 
 def generate_index(filename, output_file=None):
     """
-    Generate HTML index from CSV/TSV file.
+    Generate HTML index from input file (CSV/TSV/Excel/JSON).
 
     Args:
-        filename: Path to input CSV/TSV file
+        filename: Path to input file (supports .csv, .tsv, .xlsx, .json)
         output_file: Optional path to output HTML file (default: stdout)
     """
-    # Read and parse input file
-    index, has_course = read_index_data(filename)
+    # Read and parse input file (auto-detects format)
+    index, has_course = read_input_file(filename)
 
     if not index:
         print("Warning: No valid entries found in input file", file=sys.stderr)
@@ -431,12 +768,12 @@ def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
         description='Xenocrates - GIAC Certification Exam Index Generator',
-        epilog='Example: xenocrates.py notes.tsv index.html'
+        epilog='Examples: xenocrates.py notes.tsv index.html | xenocrates.py notes.xlsx index.html | xenocrates.py notes.json index.html'
     )
 
     parser.add_argument(
         'input_file',
-        help='Input CSV/TSV file with columns: Title, Description, Page, Book, Course (optional)'
+        help='Input file (.csv, .tsv, .xlsx, .json) with columns: Title, Description, Page, Book, Course (optional)'
     )
 
     parser.add_argument(
@@ -461,6 +798,9 @@ def main():
         sys.exit(1)
     except PermissionError:
         print(f"Error: Permission denied reading '{args.input_file}'", file=sys.stderr)
+        sys.exit(1)
+    except ImportError as e:
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)

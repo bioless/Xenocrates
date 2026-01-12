@@ -1,0 +1,64 @@
+{
+  "entries": [
+    {
+      "Title": "AES Encryption",
+      "Book": "SEC401",
+      "Page": "142",
+      "Description": "Advanced Encryption Standard - 128/192/256 bit symmetric cipher"
+    },
+    {
+      "Title": "Apache Web Server",
+      "Book": "SEC504",
+      "Page": "87",
+      "Description": "Popular open-source HTTP server software"
+    },
+    {
+      "Title": "API Security",
+      "Book": "SEC522",
+      "Page": "201",
+      "Description": "Application Programming Interface security best practices"
+    },
+    {
+      "Title": "Base64 Encoding",
+      "Book": "FOR500",
+      "Page": "93",
+      "Description": "Binary-to-text encoding scheme using 64 ASCII characters"
+    },
+    {
+      "Title": "Bash Scripting",
+      "Book": "SEC505",
+      "Page": "156",
+      "Description": "Unix shell scripting for automation and incident response"
+    },
+    {
+      "Title": "Boolean Logic",
+      "Book": "FOR508",
+      "Page": "44",
+      "Description": "AND, OR, NOT operations in digital forensics"
+    },
+    {
+      "Title": "Cross-Site Scripting",
+      "Book": "SEC542",
+      "Page": "78",
+      "Description": "XSS attack - injection of malicious scripts into web pages"
+    },
+    {
+      "Title": "CSRF Tokens",
+      "Book": "SEC542",
+      "Page": "82",
+      "Description": "Cross-Site Request Forgery protection mechanism"
+    },
+    {
+      "Title": "CVE Database",
+      "Book": "SEC504",
+      "Page": "34",
+      "Description": "Common Vulnerabilities and Exposures - public database"
+    },
+    {
+      "Title": "DNS Tunneling",
+      "Book": "SEC503",
+      "Page": "167",
+      "Description": "Covert channel using DNS protocol for data exfiltration"
+    }
+  ]
+}

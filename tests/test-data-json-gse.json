@@ -1,0 +1,25 @@
+{
+  "entries": [
+    {
+      "Title": "Kerberos Authentication",
+      "Book": "SEC505",
+      "Page": "201",
+      "Description": "Network authentication protocol using tickets and symmetric encryption",
+      "Course": "SEC575"
+    },
+    {
+      "Title": "PowerShell Remoting",
+      "Book": "SEC505",
+      "Page": "145",
+      "Description": "Remote command execution using Windows PowerShell",
+      "Course": "SEC505"
+    },
+    {
+      "Title": "IDS vs IPS",
+      "Book": "SEC503",
+      "Page": "89",
+      "Description": "Intrusion Detection vs Intrusion Prevention Systems comparison",
+      "Course": "SEC503"
+    }
+  ]
+}
