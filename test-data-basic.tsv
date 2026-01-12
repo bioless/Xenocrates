@@ -1,0 +1,80 @@
+Title	Book	Page	Description
+AES Encryption	SEC401	142	Advanced Encryption Standard - 128/192/256 bit symmetric cipher
+Apache Web Server	SEC504	87	Popular open-source HTTP server software
+API Security	SEC522	201	Application Programming Interface security best practices
+Base64 Encoding	FOR500	93	Binary-to-text encoding scheme using 64 ASCII characters
+Bash Scripting	SEC505	156	Unix shell scripting for automation and incident response
+Boolean Logic	FOR508	44	AND, OR, NOT operations in digital forensics
+Cross-Site Scripting	SEC542	78	XSS attack - injection of malicious scripts into web pages
+CSRF Tokens	SEC542	82	Cross-Site Request Forgery protection mechanism
+CVE Database	SEC504	34	Common Vulnerabilities and Exposures - public database
+DNS Tunneling	SEC503	167	Covert channel using DNS protocol for data exfiltration
+DLL Injection	FOR610	234	Dynamic Link Library injection malware technique
+Domain Controllers	SEC505	91	Active Directory central authentication servers
+Encryption Keys	SEC401	98	Cryptographic keys for encrypting and decrypting data
+Event Logs	SEC505	203	Windows Event Viewer logs for security monitoring
+ELK Stack	SEC555	178	Elasticsearch, Logstash, Kibana - log analysis platform
+Firewall Rules	SEC503	45	Network traffic filtering rules and policies
+File Carving	FOR500	156	Recovery of files without filesystem metadata
+FQDN	SEC401	23	Fully Qualified Domain Name - complete domain address
+grep Command	SEC505	67	Unix text search utility using regular expressions
+GPO	SEC505	145	Group Policy Object for Windows domain management
+GIAC Certification	MGMT512	12	Global Information Assurance Certification program
+Hash Functions	SEC401	187	One-way cryptographic functions (MD5, SHA-256)
+HTTP Headers	SEC542	56	Metadata sent with HTTP requests and responses
+Hashing vs Encryption	SEC401	189	Hashing is one-way, encryption is reversible
+Incident Response	SEC504	8	Structured approach to handling security incidents
+IDS vs IPS	SEC503	89	Intrusion Detection vs Intrusion Prevention Systems
+IPTables	SEC505	178	Linux kernel firewall configuration tool
+JavaScript	SEC542	123	Client-side scripting language often exploited in attacks
+JSON	SEC542	145	JavaScript Object Notation - data interchange format
+JWT Tokens	SEC542	147	JSON Web Tokens for stateless authentication
+Kerberos	SEC505	201	Network authentication protocol using tickets
+Keylogger	FOR610	145	Malware that records keyboard inputs
+Kill Chain	SEC504	67	Cyber attack lifecycle model from reconnaissance to actions
+LDAP	SEC505	167	Lightweight Directory Access Protocol for directory services
+Log Correlation	SEC555	234	Analyzing multiple log sources to identify patterns
+Linux Permissions	SEC505	89	Read, write, execute permissions (rwx)
+Malware Analysis	FOR610	12	Examining malicious software to understand behavior
+Memory Forensics	FOR500	267	Analysis of RAM dumps for incident investigation
+MD5 Collision	SEC401	193	Two different inputs producing same MD5 hash
+Nmap	SEC560	45	Network scanning and enumeration tool
+NTLM	SEC505	205	NT LAN Manager - Windows authentication protocol
+NULL Session	SEC504	178	Anonymous connection to Windows share or pipe
+OAuth 2.0	SEC542	189	Authorization framework for delegated access
+OSINT	SEC487	23	Open Source Intelligence gathering techniques
+One-Time Pad	SEC401	156	Theoretically unbreakable encryption using random key
+Packet Capture	SEC503	123	Recording network traffic for analysis (pcap)
+Penetration Testing	SEC560	8	Authorized simulated attack to test security
+PowerShell	SEC505	234	Windows task automation and scripting framework
+Query String	SEC542	67	URL parameters passed to web applications
+SQL Injection	SEC542	45	Malicious SQL code injection attack
+Rainbow Tables	SEC504	167	Precomputed hash tables for password cracking
+Registry Analysis	FOR500	345	Examining Windows Registry for forensic artifacts
+RSA Algorithm	SEC401	201	Asymmetric encryption algorithm using prime numbers
+SIEM	SEC555	12	Security Information and Event Management platform
+SSL/TLS	SEC401	234	Secure Sockets Layer / Transport Layer Security
+Steganography	SEC401	178	Hiding data within other files
+Token Authentication	SEC542	134	Authentication using bearer tokens
+TCP Three-Way Handshake	SEC503	56	SYN, SYN-ACK, ACK connection establishment
+Threat Hunting	SEC555	89	Proactive search for threats in network
+URL Encoding	SEC542	89	Percent-encoding special characters in URLs
+USB Forensics	FOR500	234	Analysis of USB device artifacts
+User-Agent String	SEC542	101	HTTP header identifying client software
+Volatility Framework	FOR500	289	Memory forensics analysis tool
+VPN	SEC503	234	Virtual Private Network for secure remote access
+VLAN	SEC503	145	Virtual Local Area Network segmentation
+Web Application Firewall	SEC542	234	WAF - filters malicious HTTP traffic
+Wireshark	SEC503	134	Network protocol analyzer tool
+Windows Artifacts	FOR500	123	Forensic evidence in Windows systems
+XOR Operation	SEC401	89	Exclusive OR - bitwise operation used in crypto
+X.509 Certificate	SEC401	245	Digital certificate standard for PKI
+XML	SEC542	167	Extensible Markup Language for data representation
+YARA Rules	FOR610	178	Pattern matching for malware identification
+Year 2038 Problem	FOR500	67	Unix timestamp overflow issue
+Zero Trust	SEC530	23	Security model assuming no implicit trust
+Zero-Day Exploit	SEC504	123	Attack exploiting previously unknown vulnerability
+0x41414141	FOR610	89	Hexadecimal representation of AAAA (buffer overflow)
+127.0.0.1	SEC503	34	Loopback IP address - localhost
+192.168.0.0/16	SEC503	38	Private IP address range (RFC 1918)
+3389 Port	SEC505	178	Default port for Windows Remote Desktop Protocol

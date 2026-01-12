@@ -63,24 +63,26 @@ Modernize and consolidate the Xenocrates toolset by:
 
 ### Must Have (P0)
 - **FR-1**: Accept tab-delimited input file as command-line argument
-- **FR-2**: Parse CSV/TSV with columns: title, description, page, book, course
+- **FR-2**: Parse CSV/TSV with columns: Title, Book, Page, Description
 - **FR-3**: Alphabetically sort entries by title (case-insensitive)
 - **FR-4**: Generate HTML output with alphabetical section headers (A-Z, 0-9)
-- **FR-5**: HTML escape special characters in user data
+- **FR-5**: HTML escape special characters in ALL fields (title, book, page, description)
 - **FR-6**: Output to stdout for redirection
 - **FR-7**: Handle entries starting with numbers (0-9 section)
 - **FR-8**: Preserve exact HTML table structure and formatting
+- **FR-9**: Handle CSV files created on Mac, Windows, or Linux (different line endings: CRLF, LF, CR)
+- **FR-10**: Robust handling of special characters: quotes, apostrophes, ampersands, angle brackets, HTML entities
 
 ### Should Have (P1)
-- **FR-9**: Validate input file exists before processing
-- **FR-10**: Provide clear error messages for malformed data
-- **FR-11**: Handle edge cases (empty files, missing columns)
-- **FR-12**: Support both tab and comma delimiters
+- **FR-11**: Validate input file exists before processing
+- **FR-12**: Provide clear error messages for malformed data
+- **FR-13**: Handle edge cases (empty files, missing columns, empty titles)
+- **FR-14**: Auto-detect tab vs comma delimiters (prefer tab)
 
 ### Nice to Have (P2)
-- **FR-13**: Add `--help` option for usage information
-- **FR-14**: Support output to file via `--output` flag
-- **FR-15**: Add `--version` flag
+- **FR-15**: Add `--help` option for usage information
+- **FR-16**: Support output to file via `--output` flag
+- **FR-17**: Add `--version` flag
 
 ---
 
@@ -103,11 +105,16 @@ Modernize and consolidate the Xenocrates toolset by:
 - **TR-12**: Add type hints (optional, nice-to-have)
 - **TR-13**: Follow PEP 8 style guidelines
 
+### Cross-Platform Compatibility
+- **TR-14**: Use `newline=''` parameter in open() for CSV files (handles Mac/Windows/Linux line endings)
+- **TR-15**: Use `html.escape(quote=True)` to escape quotes in addition to <, >, &
+- **TR-16**: Test with files created on Windows (CRLF), Mac (CR/LF), and Linux (LF)
+
 ### Error Handling
-- **TR-14**: Validate command-line arguments
-- **TR-15**: Handle FileNotFoundError with clear message
-- **TR-16**: Handle CSV parsing errors gracefully
-- **TR-17**: Exit with appropriate status codes (0=success, 1=error)
+- **TR-17**: Validate command-line arguments
+- **TR-18**: Handle FileNotFoundError with clear message
+- **TR-19**: Handle CSV parsing errors gracefully (malformed rows, encoding issues)
+- **TR-20**: Exit with appropriate status codes (0=success, 1=error)
 
 ---
 
