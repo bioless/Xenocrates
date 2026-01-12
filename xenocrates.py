@@ -54,26 +54,145 @@ def detect_delimiter(filename):
             return '\t'
 
 
-def validate_columns(fieldnames):
+def normalize_column_names(fieldnames):
     """
-    Validate that required columns are present in the CSV file.
+    Normalize column names to standard format (case-insensitive matching).
 
     Args:
         fieldnames: List of column names from CSV header
 
     Returns:
-        Tuple of (is_valid, missing_columns)
+        Dictionary mapping normalized names to original names
     """
-    required_columns = {'Title', 'Book', 'Page', 'Description'}
+    # Standard column names (case-sensitive for output)
+    standard_names = {
+        'title': 'Title',
+        'book': 'Book',
+        'page': 'Page',
+        'description': 'Description',
+        'course': 'Course'  # Optional
+    }
 
+    normalized = {}
+    for field in fieldnames:
+        lower_field = field.lower().strip()
+        if lower_field in standard_names:
+            normalized[standard_names[lower_field]] = field
+
+    return normalized
+
+
+def suggest_column_fix(wrong_name, valid_columns):
+    """
+    Suggest the closest matching column name for a typo.
+    Uses simple character overlap scoring.
+
+    Args:
+        wrong_name: The incorrect column name
+        valid_columns: List of valid column names
+
+    Returns:
+        Best matching column name or None
+    """
+    wrong_lower = wrong_name.lower()
+
+    best_match = None
+    best_score = 0
+
+    for valid in valid_columns:
+        valid_lower = valid.lower()
+
+        # Calculate similarity score based on:
+        # 1. Common characters
+        # 2. Length similarity
+        # 3. Prefix matching
+
+        # Count common characters
+        common = sum(1 for c in wrong_lower if c in valid_lower)
+        max_len = max(len(wrong_lower), len(valid_lower))
+        char_score = common / max_len if max_len > 0 else 0
+
+        # Length similarity (penalize big differences)
+        len_diff = abs(len(wrong_lower) - len(valid_lower))
+        len_score = max(0, 1 - (len_diff / max_len))
+
+        # Prefix matching bonus
+        prefix_len = 0
+        for i in range(min(len(wrong_lower), len(valid_lower))):
+            if wrong_lower[i] == valid_lower[i]:
+                prefix_len += 1
+            else:
+                break
+        prefix_score = prefix_len / max_len if max_len > 0 else 0
+
+        # Combined score
+        score = (char_score * 0.4) + (len_score * 0.3) + (prefix_score * 0.3)
+
+        if score > best_score and score > 0.4:  # Threshold for suggesting
+            best_score = score
+            best_match = valid
+
+    return best_match
+
+
+def validate_columns(fieldnames):
+    """
+    Validate that required columns are present in the CSV file.
+    Case-insensitive matching with helpful error messages.
+
+    Args:
+        fieldnames: List of column names from CSV header
+
+    Returns:
+        Tuple of (is_valid, error_message, normalized_column_map)
+    """
     if not fieldnames:
-        return False, required_columns
+        return False, "No columns found in file. Is the file empty?", {}
 
-    # Convert to set for comparison (handle case variations)
-    present_columns = set(fieldnames)
-    missing_columns = required_columns - present_columns
+    # Normalize column names (case-insensitive)
+    normalized = normalize_column_names(fieldnames)
 
-    return len(missing_columns) == 0, missing_columns
+    # Required columns
+    required = {'Title', 'Book', 'Page', 'Description'}
+
+    # Check what's present
+    present = set(normalized.keys())
+    missing = required - present
+
+    if not missing:
+        # All required columns found!
+        return True, "", normalized
+
+    # Build helpful error message
+    error_parts = []
+    error_parts.append(f"Missing required columns: {', '.join(sorted(missing))}")
+    error_parts.append(f"Found columns: {', '.join(fieldnames)}")
+    error_parts.append("")
+    error_parts.append("Required columns (case-insensitive):")
+    error_parts.append("  - Title: The term or topic name")
+    error_parts.append("  - Description: Detailed explanation")
+    error_parts.append("  - Page: Page number reference")
+    error_parts.append("  - Book: Course/book identifier")
+    error_parts.append("  - Course: (Optional) For GSE multi-course indexes")
+
+    # Suggest fixes for typos
+    suggestions = []
+    for field in fieldnames:
+        if field not in normalized.values():  # This column wasn't recognized
+            suggestion = suggest_column_fix(field, list(required))
+            if suggestion:
+                suggestions.append(f"  '{field}' → Did you mean '{suggestion}'?")
+
+    if suggestions:
+        error_parts.append("")
+        error_parts.append("Suggestions:")
+        error_parts.extend(suggestions)
+
+    error_parts.append("")
+    error_parts.append("Note: Column names are case-insensitive ('title' = 'Title' = 'TITLE')")
+    error_parts.append("      Columns can be in any order")
+
+    return False, "\n".join(error_parts), {}
 
 
 def read_index_data(filename):
@@ -81,10 +200,10 @@ def read_index_data(filename):
     Read and parse CSV/TSV file into index entries.
 
     Args:
-        filename: Path to CSV/TSV file with columns: Title, Book, Page, Description
+        filename: Path to CSV/TSV file with columns: Title, Description, Page, Book, Course (optional)
 
     Returns:
-        List of [title_upper, book, page, description] entries
+        List of [title_upper, description, page, book, course] entries
 
     Raises:
         FileNotFoundError: If input file doesn't exist
@@ -94,6 +213,7 @@ def read_index_data(filename):
     index = []
     empty_title_count = 0
     duplicate_tracker = defaultdict(list)
+    has_course_column = False
 
     # Auto-detect delimiter
     delimiter = detect_delimiter(filename)
@@ -104,37 +224,48 @@ def read_index_data(filename):
 
         # Validate required columns are present
         if reader.fieldnames:
-            is_valid, missing = validate_columns(reader.fieldnames)
+            is_valid, error_msg, column_map = validate_columns(reader.fieldnames)
             if not is_valid:
-                raise ValueError(
-                    f"Missing required columns: {', '.join(sorted(missing))}\n"
-                    f"Found columns: {', '.join(reader.fieldnames)}\n"
-                    f"Required: Title, Book, Page, Description"
-                )
+                raise ValueError(error_msg)
+
+            # Check if optional Course column is present
+            has_course_column = 'Course' in column_map
+            if has_course_column:
+                print("Info: Course column detected (GSE mode)", file=sys.stderr)
 
         for row_num, row in enumerate(reader, start=2):  # Start at 2 (header is line 1)
             try:
-                # Validate required columns exist
-                title = row.get('Title', '').strip()
-                book = row.get('Book', '').strip()
-                page = row.get('Page', '').strip()
-                description = row.get('Description', '').strip()
+                # Use case-insensitive column access via normalized map
+                # Get the actual column name from user's file
+                title_col = column_map.get('Title', 'Title')
+                desc_col = column_map.get('Description', 'Description')
+                page_col = column_map.get('Page', 'Page')
+                book_col = column_map.get('Book', 'Book')
+                course_col = column_map.get('Course', 'Course')
+
+                # Extract values
+                title = row.get(title_col, '').strip()
+                description = row.get(desc_col, '').strip()
+                page = row.get(page_col, '').strip()
+                book = row.get(book_col, '').strip()
+                course = row.get(course_col, '').strip() if has_course_column else ''
 
                 # Skip entries with empty titles but warn user
                 if not title:
                     empty_title_count += 1
                     continue
 
-                # Track duplicates (same title, book, page)
-                dup_key = (title.upper(), book, page)
+                # Track duplicates (same title, book, page, course)
+                dup_key = (title.upper(), book, page, course) if has_course_column else (title.upper(), book, page)
                 duplicate_tracker[dup_key].append(row_num)
 
                 # Store with uppercase title for sorting, original values for display
                 index.append([
                     title.upper(),  # For case-insensitive sorting
-                    book,
+                    description,
                     page,
-                    description
+                    book,
+                    course  # Will be empty string if no Course column
                 ])
 
             except KeyError as e:
@@ -153,13 +284,18 @@ def read_index_data(filename):
     # Report duplicates
     duplicates = {k: v for k, v in duplicate_tracker.items() if len(v) > 1}
     if duplicates:
-        print(f"Warning: Found {len(duplicates)} duplicate entries (same title/book/page):", file=sys.stderr)
-        for (title, book, page), rows in list(duplicates.items())[:5]:  # Show first 5
-            print(f"  - '{title}' (Book: {book}, Page: {page}) on rows: {', '.join(map(str, rows))}", file=sys.stderr)
+        print(f"Warning: Found {len(duplicates)} duplicate entries:", file=sys.stderr)
+        for dup_key, rows in list(duplicates.items())[:5]:  # Show first 5
+            if has_course_column:
+                title, book, page, course = dup_key
+                print(f"  - '{title}' (Book: {book}, Course: {course}, Page: {page}) on rows: {', '.join(map(str, rows))}", file=sys.stderr)
+            else:
+                title, book, page = dup_key
+                print(f"  - '{title}' (Book: {book}, Page: {page}) on rows: {', '.join(map(str, rows))}", file=sys.stderr)
         if len(duplicates) > 5:
             print(f"  ... and {len(duplicates) - 5} more duplicates", file=sys.stderr)
 
-    return index
+    return index, has_course_column
 
 
 def get_section_header(character):
@@ -190,41 +326,51 @@ def get_section_header(character):
     return section_num, header_html
 
 
-def print_entry(title, book, page, description):
+def print_entry(title, description, page, book, course=''):
     """
     Print a single index entry in HTML format to stdout.
 
     Args:
         title: Entry title (will be HTML escaped)
-        book: Book/course identifier (will be HTML escaped)
-        page: Page number (will be HTML escaped)
         description: Entry description (will be HTML escaped)
+        page: Page number (will be HTML escaped)
+        book: Book/course identifier (will be HTML escaped)
+        course: Optional course identifier (will be HTML escaped)
     """
-    print_entry_to_file(title, book, page, description, sys.stdout)
+    print_entry_to_file(title, description, page, book, course, sys.stdout)
 
 
-def print_entry_to_file(title, book, page, description, output):
+def print_entry_to_file(title, description, page, book, course, output):
     """
     Print a single index entry in HTML format to specified file.
 
     Args:
         title: Entry title (will be HTML escaped)
-        book: Book/course identifier (will be HTML escaped)
-        page: Page number (will be HTML escaped)
         description: Entry description (will be HTML escaped)
+        page: Page number (will be HTML escaped)
+        book: Book/course identifier (will be HTML escaped)
+        course: Optional course identifier (will be HTML escaped)
         output: File object to write to
     """
     # HTML escape all fields, including quotes (quote=True)
     title_escaped = html.escape(title, quote=True)
-    book_escaped = html.escape(book, quote=True)
-    page_escaped = html.escape(page, quote=True)
     desc_escaped = html.escape(description, quote=True)
+    page_escaped = html.escape(page, quote=True)
+    book_escaped = html.escape(book, quote=True)
+    course_escaped = html.escape(course, quote=True) if course else ''
 
-    # Print entry in original format
+    # Print entry in format
     print(f"<span class=topic><b><span style='color:blue'>", file=output)
     print(f" {title_escaped} ", file=output)
     print("</span></b></span><span style='color:black'>&nbsp;", file=output)
-    print(f"<br><i>{{b-{book_escaped} / p-{page_escaped}}}</i><br>{desc_escaped}<br></span>", file=output)
+
+    # Build reference string: {b-SEC401 / c-575 / p-142} or {b-SEC401 / p-142}
+    if course:
+        ref_str = f"{{b-{book_escaped} / c-{course_escaped} / p-{page_escaped}}}"
+    else:
+        ref_str = f"{{b-{book_escaped} / p-{page_escaped}}}"
+
+    print(f"<br><i>{ref_str}</i><br>{desc_escaped}<br></span>", file=output)
 
 
 def generate_index(filename, output_file=None):
@@ -236,7 +382,7 @@ def generate_index(filename, output_file=None):
         output_file: Optional path to output HTML file (default: stdout)
     """
     # Read and parse input file
-    index = read_index_data(filename)
+    index, has_course = read_index_data(filename)
 
     if not index:
         print("Warning: No valid entries found in input file", file=sys.stderr)
@@ -254,7 +400,7 @@ def generate_index(filename, output_file=None):
 
         # Process each entry
         for entry in index:
-            title_upper, book, page, description = entry
+            title_upper, description, page, book, course = entry
 
             # Get first character (strip quotes if present)
             first_char = title_upper.strip('"').lstrip('"')[0] if title_upper else ''
@@ -270,10 +416,11 @@ def generate_index(filename, output_file=None):
                 current_section = section_num
 
             # Print the entry with explicit file parameter
-            print_entry_to_file(title_upper, book, page, description, output)
+            print_entry_to_file(title_upper, description, page, book, course, output)
 
         if output_file:
-            print(f"Success: Generated index with {len(index)} entries → {output_file}", file=sys.stderr)
+            mode_str = " (GSE mode)" if has_course else ""
+            print(f"Success: Generated index with {len(index)} entries{mode_str} → {output_file}", file=sys.stderr)
 
     finally:
         if output_file and output != sys.stdout:
@@ -289,7 +436,7 @@ def main():
 
     parser.add_argument(
         'input_file',
-        help='Input CSV/TSV file with columns: Title, Book, Page, Description'
+        help='Input CSV/TSV file with columns: Title, Description, Page, Book, Course (optional)'
     )
 
     parser.add_argument(
