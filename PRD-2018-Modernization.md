@@ -1,16 +1,21 @@
-# Product Requirements Document: Xenocrates 2018 Script Modernization
+# Product Requirements Document: Xenocrates Script Modernization
 
 ## Document Info
-- **Version**: 1.0
+- **Version**: 1.1
 - **Date**: 2026-01-12
-- **Target File**: `xenocrates-update-2018.py`
-- **Status**: Draft
+- **Source File**: `xenocrates-update-2018.py`
+- **Target File**: `xenocrates.py` (rename)
+- **Status**: Approved
 
 ---
 
 ## 1. Executive Summary
 
-Modernize the `xenocrates-update-2018.py` script to ensure Python 3 compatibility, improve maintainability, and align with current best practices while preserving all existing functionality.
+Modernize and consolidate the Xenocrates toolset by:
+1. Updating `xenocrates-update-2018.py` to `xenocrates.py` as the canonical version
+2. Retiring legacy scripts (`xenocrates.py` and `xenocrates-gse.py`)
+3. Ensuring Python 3 compatibility, improved maintainability, and modern best practices
+4. Preserving the exact HTML output format that users rely on for study materials
 
 ---
 
@@ -28,6 +33,13 @@ Modernize the `xenocrates-update-2018.py` script to ensure Python 3 compatibilit
 - Contains ~110 lines of repetitive if/elif logic
 - Poor error handling (bare except clauses)
 - Won't run on modern Python 3.11+ installations
+- Multiple script versions create confusion (xenocrates.py vs xenocrates-gse.py vs xenocrates-update-2018.py)
+
+### Migration Strategy
+1. **Rename**: `xenocrates-update-2018.py` → `xenocrates.py` (becomes canonical version)
+2. **Archive**: Move old `xenocrates.py` and `xenocrates-gse.py` to `archive/` directory
+3. **Document**: Update README.md to reference only the new `xenocrates.py`
+4. **Preserve**: Keep HTML output format exactly as is - users depend on the current style for studying
 
 ---
 
@@ -158,13 +170,13 @@ Modernize the `xenocrates-update-2018.py` script to ensure Python 3 compatibilit
 ## 9. Out of Scope
 
 The following are explicitly **NOT** included in this update:
-- ❌ Changing HTML output format or styling
+- ❌ Changing HTML output format or styling (preserve current format)
 - ❌ Adding web framework or server functionality
 - ❌ Database integration
 - ❌ GUI interface
 - ❌ Support for non-TSV/CSV input formats (Excel, JSON, etc.)
 - ❌ Internationalization (i18n) support
-- ❌ Changes to xenocrates.py or xenocrates-gse.py (separate scope)
+- ❌ Backwards compatibility shims for old script names
 
 ---
 
@@ -193,21 +205,53 @@ The modernization is complete when:
 - ✅ Script runs on Python 3.8+
 - ✅ All test cases pass
 - ✅ HTML output matches original (for same input)
+- ✅ `xenocrates-update-2018.py` renamed to `xenocrates.py`
+- ✅ Old scripts moved to `archive/` directory
+- ✅ README.md updated with new usage instructions
 - ✅ Code review completed
-- ✅ Documentation updated
 
 ---
 
-## 13. Open Questions
+## 13. Decisions Made
 
-1. Should we maintain Python 2 compatibility or fully commit to Python 3?
-   - **Decision**: Python 3 only (Python 2 is EOL since 2020)
+1. **Should we maintain Python 2 compatibility or fully commit to Python 3?**
+   - ✅ **Decision**: Python 3 only (Python 2 is EOL since 2020)
 
-2. Should we rename the file to remove "2018" designation?
-   - **Decision**: TBD - discuss with stakeholders
+2. **Should we rename the file to remove "2018" designation?**
+   - ✅ **Decision**: Yes, rename to `xenocrates.py` and make it the canonical version
 
-3. What Python versions should we test against?
-   - **Decision**: 3.8 (oldest supported), 3.11, 3.12 (latest)
+3. **What Python versions should we test against?**
+   - ✅ **Decision**: 3.8 (oldest supported), 3.11, 3.12 (latest)
+
+4. **Should we include Phase 3 enhanced features?**
+   - ✅ **Decision**: Yes, include --help, --version, --output flags
+
+5. **What should happen to old scripts?**
+   - ✅ **Decision**: Archive `xenocrates.py` and `xenocrates-gse.py` to `archive/` directory
+
+---
+
+## 14. Additional Recommendations
+
+Based on the analysis, here are some optional enhancements to consider:
+
+### Quality of Life Improvements
+1. **CSV Auto-detection**: Automatically detect tab vs comma delimiters (currently requires tab-delimited)
+2. **Column Validation**: Warn if required columns (title, description, page, book, course) are missing
+3. **Duplicate Detection**: Flag duplicate entries with same title/page/book
+4. **Empty Entry Warning**: Skip or warn about entries with missing titles
+
+### Output Enhancements
+5. **Statistics Summary**: Show count of entries per letter section (optional stderr output)
+6. **HTML Metadata**: Add generated date/time as HTML comment
+7. **CSS Optimization**: Inline minimal CSS for better rendering when copying to Word
+
+### Developer Experience
+8. **Sample Data**: Include a sample TSV file for testing
+9. **Unit Tests**: Add simple test suite to verify sorting and HTML generation
+10. **Pre-commit Hook**: Ensure code quality with basic linting
+
+**Recommendation**: Implement #1-4 in Phase 2, defer #5-10 for future releases if needed.
 
 ---
 
@@ -241,4 +285,5 @@ cgi.escape(str(row['title']))  # cgi.escape deprecated, use html.escape
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-01-12 | Initial | Initial PRD creation |
+| 1.1 | 2026-01-12 | Updated | Added rename strategy, script deprecation plan, confirmed Phase 3 features |
 
