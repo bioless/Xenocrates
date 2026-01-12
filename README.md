@@ -20,11 +20,13 @@ python xenocrates.py notes.tsv > index.html
 ## Features
 
 - ✅ **Python 3.8+** compatible
+- ✅ **GSE Support** - Optional Course column for multi-course indexes
+- ✅ **Flexible Columns** - Case-insensitive, any order
 - ✅ **Auto-detects CSV or TSV** format (tab or comma delimited)
 - ✅ **Cross-platform** - Works on Mac, Windows, and Linux
 - ✅ **HTML escaping** - Handles special characters safely
+- ✅ **Smart Error Messages** - Typo suggestions and helpful hints
 - ✅ **Duplicate detection** - Warns about duplicate entries
-- ✅ **Validation** - Clear error messages for malformed files
 - ✅ **Alphabetical sorting** - Case-insensitive A-Z sections
 
 ## Video Tutorial
@@ -40,17 +42,28 @@ YouTube walkthrough: https://youtu.be/U4QmSQDIiHM
 
 ### 1. Create Your Study Notes Spreadsheet
 
-Create an Excel or Google Sheets spreadsheet with these **required columns**:
+Create an Excel or Google Sheets spreadsheet with these columns:
 
-| Column | Description | Example |
-|--------|-------------|---------|
-| **Title** | Term or topic name | `AES Encryption` |
-| **Book** | Course/book identifier | `SEC401` |
-| **Page** | Page number reference | `142` |
-| **Description** | Detailed explanation | `Advanced Encryption Standard - 128/192/256 bit symmetric cipher` |
+**Standard Format (4 columns):**
+| Column | Required | Description | Example |
+|--------|----------|-------------|---------|
+| **Title** | ✅ Yes | Term or topic name | `AES Encryption` |
+| **Description** | ✅ Yes | Detailed explanation | `Advanced Encryption Standard - 128/192/256 bit cipher` |
+| **Page** | ✅ Yes | Page number reference | `142` |
+| **Book** | ✅ Yes | Course/book identifier | `SEC401` |
+
+**GSE Format (5 columns for multi-course exams):**
+| Column | Required | Description | Example |
+|--------|----------|-------------|---------|
+| **Title** | ✅ Yes | Term or topic name | `Kerberos` |
+| **Description** | ✅ Yes | Detailed explanation | `Network authentication protocol` |
+| **Page** | ✅ Yes | Page number reference | `201` |
+| **Book** | ✅ Yes | Book identifier | `SEC505` |
+| **Course** | 📘 Optional | Course number (for GSE) | `SEC575` |
 
 **Tips:**
-- Column names are **case-sensitive** (must be: Title, Book, Page, Description)
+- Column names are **case-insensitive** ('title' = 'Title' = 'TITLE')
+- **Columns can be in any order** - the script reads by name, not position
 - Take notes as you study - add a "." in Description if you just need the reference
 - Don't worry about sorting - Xenocrates handles that automatically
 - Special characters are handled safely (quotes, <, >, &, etc.)
@@ -156,7 +169,11 @@ The following scripts have been archived in the `archive/` directory:
 
 These are kept for reference but are **no longer maintained**. Please use the new `xenocrates.py` (version 2.0+).
 
-**Migration Note:** The new version uses 4 columns (Title, Book, Page, Description) instead of 5. The "Course" column from xenocrates-gse.py is no longer needed.
+**Migration Note:** The new version supports **both** 4-column and 5-column formats:
+- **Standard**: Title, Description, Page, Book (output: `{b-SEC401 / p-142}`)
+- **GSE**: Title, Description, Page, Book, Course (output: `{c-SEC575 / b-SEC505 / p-201}`)
+
+The Course column is now **optional** and auto-detected. Old xenocrates-gse.py files work perfectly!
 
 ---
 
@@ -175,7 +192,16 @@ python3 xenocrates.py notes.tsv index.html
 python3 xenocrates.py notes.csv index.html
 ```
 
-### Example 3: Check Output
+### Example 3: GSE Multi-Course Index
+```bash
+# For GSE exams covering multiple courses
+# Use 5 columns: Title, Description, Page, Book, Course
+python3 xenocrates.py gse-notes.tsv gse-index.html
+
+# Output will show: {c-SEC575 / b-SEC505 / p-201}
+```
+
+### Example 4: Check Output
 ```bash
 # Generate index
 python3 xenocrates.py notes.tsv index.html
@@ -194,10 +220,16 @@ start index.html  # Windows
 ```
 Error: Missing required columns: Description
 Found columns: Title, Book, Page
-Required: Title, Book, Page, Description
+Required: Title, Description, Page, Book
+
+Suggestions:
+  'Desc' → Did you mean 'Description'?
+
+Note: Column names are case-insensitive
+      Columns can be in any order
 ```
 
-**Solution:** Ensure your spreadsheet has all 4 required columns with exact names (case-sensitive).
+**Solution:** Ensure your spreadsheet has all 4 required columns: Title, Description, Page, Book. Column names are case-insensitive and can be in any order. Check the suggestions for typo fixes.
 
 ### "File not found" Error
 ```
@@ -222,9 +254,12 @@ Warning: Found 2 duplicate entries (same title/book/page):
 ## What's New in Version 2.0
 
 - ✅ **Python 3.8+ support** (Python 2 no longer supported)
+- ✅ **GSE Support** - Optional Course column for multi-course indexes
+- ✅ **Case-insensitive columns** - 'title' = 'Title' = 'TITLE'
+- ✅ **Flexible column order** - Columns can be in any order
+- ✅ **Smart error messages** - Typo suggestions like 'Titel' → 'Title'
 - ✅ **CSV auto-detection** - No need to specify delimiter
 - ✅ **Direct file output** - No more `> index.html` redirection
-- ✅ **Better error messages** - Clear validation and helpful tips
 - ✅ **Duplicate detection** - Warns about duplicate entries
 - ✅ **Cross-platform** - Works on Mac, Windows, Linux
 - ✅ **HTML escaping** - Safe handling of special characters

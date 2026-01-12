@@ -364,9 +364,9 @@ def print_entry_to_file(title, description, page, book, course, output):
     print(f" {title_escaped} ", file=output)
     print("</span></b></span><span style='color:black'>&nbsp;", file=output)
 
-    # Build reference string: {b-SEC401 / c-575 / p-142} or {b-SEC401 / p-142}
+    # Build reference string: {c-575 / b-SEC401 / p-142} or {b-SEC401 / p-142}
     if course:
-        ref_str = f"{{b-{book_escaped} / c-{course_escaped} / p-{page_escaped}}}"
+        ref_str = f"{{c-{course_escaped} / b-{book_escaped} / p-{page_escaped}}}"
     else:
         ref_str = f"{{b-{book_escaped} / p-{page_escaped}}}"
 
