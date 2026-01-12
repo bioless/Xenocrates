@@ -1,7 +1,8 @@
-# Test outputs
+# Test outputs (but keep sample outputs in tests/)
 test-output-*.html
 output-*.html
 *-output.html
+!tests/sample-output*.html
 
 # Python artifacts
 __pycache__/
