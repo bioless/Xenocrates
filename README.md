@@ -35,7 +35,7 @@ YouTube walkthrough: https://youtu.be/U4QmSQDIiHM
 
 *Original tool provided by @0sm0s1z*
 
-![Sample Output](sample2.jpg)
+![Sample Output](docs/sample2.jpg)
 
 
 ## Indexing Methodology
