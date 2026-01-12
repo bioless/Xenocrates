@@ -1,0 +1,18 @@
+Title	Book	Page	Description
+<script>alert(1)</script>	SEC542	999	HTML/JavaScript tags should be escaped properly
+"Quoted Title"	SEC401	100	Titles with quotes need proper handling
+O'Reilly Books	SEC505	50	Apostrophes in titles
+Command & Control	FOR610	75	Ampersand character - C&C servers used by malware
+5 < 10 < 20	SEC401	150	Less-than and greater-than symbols in mathematics
+a > b	SEC401	151	Greater than comparison operator
+SQL: SELECT * FROM users	SEC542	200	Code snippets with special characters
+#!/bin/bash	SEC505	175	Shebang notation for shell scripts
+<tag>	SEC542	300	Angle brackets without closing tag
+&nbsp;	SEC542	301	HTML entity references
+	SEC401	1	Empty title field to test error handling
+Duplicate Entry	SEC401	100	First occurrence of duplicate
+Duplicate Entry	SEC401	100	Second occurrence - same title/page/book
+MiXeD CaSe TiTlE	SEC505	250	Testing case-insensitive sorting
+mixed case title	SEC505	251	Should sort near MiXeD CaSe TiTlE
+ALLCAPS TITLE	SEC505	252	All uppercase title
+allcaps title	SEC505	253	Same but lowercase - testing sort order

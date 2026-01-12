@@ -1,0 +1,30 @@
+# Test outputs
+test-output-*.html
+output-*.html
+*-output.html
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Archive directory will be created during migration
+archive/
