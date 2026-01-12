@@ -1,164 +1,192 @@
-#!/usr/bin/python
-import sqlite3 as sql
+#!/usr/bin/env python3
+"""
+Xenocrates - GIAC Certification Exam Index Generator
+
+Processes tab-delimited study notes and generates an alphabetically sorted
+HTML index for easy reference during GIAC certification exams.
+
+Usage:
+    python xenocrates.py <input_file.tsv> > index.html
+"""
+
 import sys
-import operator
+import csv
+import html
+import string
+from operator import itemgetter
 
-#Global Variables
-tablename = "SANS560_index"
-topic = []
-definition = []
-book = []
-page = []
-notes = []
-reference = []
-index = []
 
- 
-    
-doc = open(sys.argv[1], "r")
-for raw in doc.readlines():
-    for datz in raw.split("\r"):
-        data = "".join([i if ord(i) < 128 else ' ' for i in datz])
-        topic.append(data.split("\t")[0])
-        try:
-            definition.append(data.split("\t")[1])
-        except:
-            pass
-        try:
-            page.append(data.split("\t")[2])
-        except:
-            pass
-        try:
-            book.append(data.split("\t")[3])
-        except:
-            pass
+def read_index_data(filename):
+    """
+    Read and parse tab-delimited file into index entries.
 
-i = 0
-for blah in topic:
+    Args:
+        filename: Path to TSV file with columns: Title, Book, Page, Description
+
+    Returns:
+        List of [title_upper, book, page, description] entries
+
+    Raises:
+        FileNotFoundError: If input file doesn't exist
+        csv.Error: If CSV parsing fails
+    """
+    index = []
+
+    # Use newline='' for cross-platform CSV compatibility (Mac/Windows/Linux)
+    with open(filename, 'r', newline='', encoding='utf-8') as f:
+        reader = csv.DictReader(f, delimiter='\t')
+
+        for row_num, row in enumerate(reader, start=2):  # Start at 2 (header is line 1)
+            try:
+                # Validate required columns exist
+                title = row.get('Title', '').strip()
+                book = row.get('Book', '').strip()
+                page = row.get('Page', '').strip()
+                description = row.get('Description', '').strip()
+
+                # Skip entries with empty titles
+                if not title:
+                    continue
+
+                # Store with uppercase title for sorting, original values for display
+                index.append([
+                    title.upper(),  # For case-insensitive sorting
+                    book,
+                    page,
+                    description
+                ])
+
+            except KeyError as e:
+                # Handle missing column
+                print(f"Warning: Missing column {e} in row {row_num}, skipping", file=sys.stderr)
+                continue
+            except Exception as e:
+                # Handle other parsing errors
+                print(f"Warning: Error parsing row {row_num}: {e}, skipping", file=sys.stderr)
+                continue
+
+    return index
+
+
+def get_section_header(character):
+    """
+    Get the HTML section header for a given starting character.
+
+    Args:
+        character: First character of the entry title (uppercase)
+
+    Returns:
+        Tuple of (section_number, header_html)
+    """
+    # Map A-Z to section numbers 1-26
+    if character in string.ascii_uppercase:
+        section_num = ord(character) - ord('A') + 1
+        header_label = f"{character}{character.lower()}"
+    else:
+        # Numbers and special characters
+        section_num = 27
+        header_label = "Numbers & Special Characters"
+
+    header_html = (
+        f"<span class=Title1><b><span style='font-size:45.0pt;line-height:107%;"
+        f"color:black'>{header_label}</span></b></span>"
+        f"<span style='font-size:13.5pt;line-height:107%;color:black'><br><br></span>"
+    )
+
+    return section_num, header_html
+
+
+def print_entry(title, book, page, description):
+    """
+    Print a single index entry in HTML format.
+
+    Args:
+        title: Entry title (will be HTML escaped)
+        book: Book/course identifier (will be HTML escaped)
+        page: Page number (will be HTML escaped)
+        description: Entry description (will be HTML escaped)
+    """
+    # HTML escape all fields, including quotes (quote=True)
+    title_escaped = html.escape(title, quote=True)
+    book_escaped = html.escape(book, quote=True)
+    page_escaped = html.escape(page, quote=True)
+    desc_escaped = html.escape(description, quote=True)
+
+    # Print entry in original format
+    print(f"<span class=topic><b><span style='color:blue'>")
+    print(f" {title_escaped} ")
+    print("</span></b></span><span style='color:black'>&nbsp;")
+    print(f"<br><i>{{b-{book_escaped} / p-{page_escaped}}}</i><br>{desc_escaped}<br></span>")
+
+
+def generate_index(filename):
+    """
+    Generate HTML index from tab-delimited file.
+
+    Args:
+        filename: Path to input TSV file
+    """
+    # Read and parse input file
+    index = read_index_data(filename)
+
+    if not index:
+        print("Warning: No valid entries found in input file", file=sys.stderr)
+        return
+
+    # Sort alphabetically by title (case-insensitive, already uppercase)
+    index = sorted(index, key=itemgetter(0))
+
+    # Track current section to avoid duplicate headers
+    current_section = 0
+
+    # Process each entry
+    for entry in index:
+        title_upper, book, page, description = entry
+
+        # Get first character (strip quotes if present)
+        first_char = title_upper.strip('"').lstrip('"')[0] if title_upper else ''
+
+        if not first_char:
+            continue
+
+        # Determine section and print header if changed
+        section_num, section_header = get_section_header(first_char)
+
+        if section_num != current_section:
+            print(section_header)
+            current_section = section_num
+
+        # Print the entry
+        print_entry(title_upper, book, page, description)
+
+
+def main():
+    """Main entry point."""
+    # Validate command-line arguments
+    if len(sys.argv) != 2:
+        print("Usage: python xenocrates.py <input_file.tsv>", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Example:", file=sys.stderr)
+        print("  python xenocrates.py notes.tsv > index.html", file=sys.stderr)
+        sys.exit(1)
+
+    filename = sys.argv[1]
+
     try:
-        index.append([topic[i], book[i], page[i], definition[i]])
-    except:
-        pass
-    i = i + 1
-
-pos = 0
-sorted_list = sorted(index, key=operator.itemgetter(0))
-for item in sorted_list:
-    key = item[0].strip('"').rstrip('"')
-    #Create Section Header
-    if key.startswith("A") or key.startswith("a"):
-        if pos == 0:
-            print "<span class = 'title'>Aa</span><br><br>"
-            pos = 1
-    elif key.startswith("B") or key.startswith("b"):
-        if pos != 2:
-            print "<span class = 'title'>Bb</span><br><br>"
-            pos = 2
-    elif key.startswith("C") or key.startswith("c"):
-        if pos != 3:
-            print "<span class = 'title'>Cc</span><br><br>"
-            pos = 3
-    elif key.startswith("D") or key.startswith("d"):
-        if pos != 4:
-            print "<span class = 'title'>Dd</span><br><br>"
-            pos = 4
-    elif key.startswith("E") or key.startswith("e"):
-        if pos != 5:
-            print "<span class = 'title'>Ee</span><br><br>"
-            pos = 5
-    elif key.startswith("F") or key.startswith("f"):
-        if pos != 6:
-            print "<span class = 'title'>Ff</span><br><br>"
-            pos = 6
-    elif key.startswith("G") or key.startswith("g"):
-        if pos != 7:
-            print "<span class = 'title'>Gg</span><br><br>"
-            pos = 7
-    elif key.startswith("H") or key.startswith("h"):
-        if pos != 8:
-            print "<span class = 'title'>Hh</span><br><br>"
-            pos = 8
-    elif key.startswith("I") or key.startswith("i"):
-        if pos != 9:
-            print "<span class = 'title'>Ii</span><br><br>"
-            pos = 9
-    elif key.startswith("J") or key.startswith("j"):
-        if pos != 10:
-            print "<span class = 'title'>Jj</span><br><br>"
-            pos = 10
-    elif key.startswith("K") or key.startswith("k"):
-        if pos != 11:
-            print "<span class = 'title'>Kk</span><br><br>"
-            pos = 11
-    elif key.startswith("L") or key.startswith("l"):
-        if pos != 12:
-            print "<span class = 'title'>Ll</span><br><br>"
-            pos = 12
-    elif key.startswith("M") or key.startswith("m"):
-        if pos != 13:
-            print "<span class = 'title'>Mm</span><br><br>"
-            pos = 13
-    elif key.startswith("N") or key.startswith("n"):
-        if pos != 14:
-            print "<span class = 'title'>Nn</span><br><br>"
-            pos = 14
-    elif key.startswith("O") or key.startswith("o"):
-        if pos != 15:
-            print "<span class = 'title'>Oo</span><br><br>"
-            pos = 15
-    elif key.startswith("P") or key.startswith("p"):
-        if pos != 16:
-            print "<span class = 'title'>Pp</span><br><br>"
-            pos = 16
-    elif key.startswith("Q") or key.startswith("q"):
-        if pos != 17:
-            print "<span class = 'title'>Qq</span><br><br>"
-            pos = 17
-    elif key.startswith("R") or key.startswith("r"):
-        if pos != 18:
-            print "<span class = 'title'>Rr</span><br><br>"
-            pos = 18
-    elif key.startswith("S") or key.startswith("s"):
-        if pos != 19:
-            print "<span class = 'title'>Ss</span><br><br>"
-            pos = 19
-    elif key.startswith("T") or key.startswith("t"):
-        if pos != 20:
-            print "<span class = 'title'>Tt</span><br><br>"
-            pos = 20
-    elif key.startswith("U") or key.startswith("u"):
-        if pos != 21:
-            print "<span class = 'title'>Uu</span><br><br>"
-            pos = 21
-    elif key.startswith("V") or key.startswith("v"):
-        if pos != 22:
-            print "<span class = 'title'>Vv</span><br><br>"
-            pos = 22
-    elif key.startswith("W") or key.startswith("w"):
-        if pos != 23:
-            print "<span class = 'title'>Ww</span><br><br>"
-            pos = 23
-    elif key.startswith("X") or key.startswith("x"):
-        if pos != 24:
-            print "<span class = 'title'>Xx</span><br><br>"
-            pos = 24
-    elif key.startswith("Y") or key.startswith("y"):
-        if pos != 25:
-            print "<span class = 'title'>Yy</span><br><br>"
-            pos = 25
-    elif key.startswith("Z") or key.startswith("z"):
-        if pos != 26:
-            print "<span class = 'title'>Zz</span><br><br>"
-            pos = 26
-            
-            
-            
-    print "<style>.topic{color: blue;font-weight: bold;}</style>"        
-    #Print Details
-    if item[0] != "":
-        print "<span class = 'topic'>%s</span> <i>[b%s/p%s]</i>  %s<br>" % (item[0].strip('"').rstrip('"'), item[1], item[2].strip('"').rstrip('"'), item[3])
-        
-#print sorted_list
+        generate_index(filename)
+    except FileNotFoundError:
+        print(f"Error: File '{filename}' not found", file=sys.stderr)
+        sys.exit(1)
+    except PermissionError:
+        print(f"Error: Permission denied reading '{filename}'", file=sys.stderr)
+        sys.exit(1)
+    except csv.Error as e:
+        print(f"Error: CSV parsing failed: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: Unexpected error: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
-
+if __name__ == "__main__":
+    main()
