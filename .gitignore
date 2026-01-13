@@ -11,10 +11,18 @@ __pycache__/
 *.so
 .Python
 
+# Testing and coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
 # Virtual environments
 venv/
 ENV/
 env/
+.venv/
 
 # IDE
 .vscode/
@@ -26,6 +34,12 @@ env/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
 
 # Archive directory will be created during migration
 archive/

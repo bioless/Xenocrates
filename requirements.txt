@@ -1,0 +1,5 @@
+# Xenocrates - GIAC Certification Exam Index Generator
+# Python dependencies
+
+# Excel file support (.xlsx)
+openpyxl==3.1.2

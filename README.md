@@ -2,7 +2,7 @@
 
 Xenocrates is an indexing tool for GIAC certification examinations. Creating an index with Xenocrates is a three-phase process involving: documentation/note-taking, sorting & normalization, and word processing.
 
-**Version 2.0** - Modernized for Python 3, with CSV/TSV auto-detection and enhanced features.
+**Version 2.0** - Modernized for Python 3, with support for multiple input formats (CSV/TSV/Excel/JSON) and enhanced features.
 
 ## Quick Start
 
@@ -10,8 +10,10 @@ Xenocrates is an indexing tool for GIAC certification examinations. Creating an 
 # Modern usage (recommended)
 python xenocrates.py notes.tsv index.html
 
-# Also supports CSV files
-python xenocrates.py notes.csv index.html
+# Supports multiple input formats
+python xenocrates.py notes.csv index.html   # CSV format
+python xenocrates.py notes.xlsx index.html  # Excel format
+python xenocrates.py notes.json index.html  # JSON format
 
 # Legacy mode (still supported)
 python xenocrates.py notes.tsv > index.html
@@ -20,9 +22,10 @@ python xenocrates.py notes.tsv > index.html
 ## Features
 
 - ✅ **Python 3.8+** compatible
+- ✅ **Multiple Input Formats** - CSV, TSV, Excel (.xlsx), JSON
 - ✅ **GSE Support** - Optional Course column for multi-course indexes
 - ✅ **Flexible Columns** - Case-insensitive, any order
-- ✅ **Auto-detects CSV or TSV** format (tab or comma delimited)
+- ✅ **Auto-detects format** - CSV, TSV, Excel, or JSON
 - ✅ **Cross-platform** - Works on Mac, Windows, and Linux
 - ✅ **HTML escaping** - Handles special characters safely
 - ✅ **Smart Error Messages** - Typo suggestions and helpful hints
@@ -68,17 +71,28 @@ Create an Excel or Google Sheets spreadsheet with these columns:
 - Don't worry about sorting - Xenocrates handles that automatically
 - Special characters are handled safely (quotes, <, >, &, etc.)
 
-### 2. Save as TSV or CSV
+### 2. Save in a Supported Format
 
-**Option A - Tab-delimited (TSV):**
+Xenocrates supports multiple input formats. Choose the one that works best for your workflow:
+
+**Option A - Excel (Recommended for most users):**
+- Keep your spreadsheet as Excel format (.xlsx)
+- No export needed! Use the file directly
+- `python xenocrates.py notes.xlsx index.html`
+
+**Option B - Tab-delimited (TSV):**
 - Excel: File → Save As → Tab Delimited Text (.txt or .tsv)
 - Google Sheets: File → Download → Tab-separated values (.tsv)
 
-**Option B - Comma-delimited (CSV):**
+**Option C - Comma-delimited (CSV):**
 - Excel: File → Save As → CSV (Comma delimited) (.csv)
 - Google Sheets: File → Download → Comma-separated values (.csv)
 
-**Note:** Xenocrates auto-detects the delimiter, so either format works!
+**Option D - JSON (For automation/scripting):**
+- Create programmatically or export from tools
+- Format: `{"entries": [{"Title": "...", "Description": "...", "Page": "...", "Book": "..."}]}`
+
+**Note:** Xenocrates auto-detects the format and delimiter, so all formats work seamlessly!
 
 ### 3. Generate the HTML Index
 
@@ -137,7 +151,8 @@ Print and take to OfficeMax/Staples/FedEx for binding:
 
 **Requirements:**
 - Python 3.8 or higher
-- No external dependencies (uses only Python standard library)
+- For CSV/TSV/JSON: No external dependencies (uses Python standard library)
+- For Excel (.xlsx): Requires `openpyxl` library
 
 **Check your Python version:**
 ```bash
@@ -150,12 +165,18 @@ python3 --version
 git clone https://github.com/bioless/Xenocrates.git
 cd Xenocrates
 
+# Install Excel support (optional, only needed for .xlsx files)
+pip install -r requirements.txt
+# OR: pip install openpyxl
+
 # Make executable (Linux/Mac)
 chmod +x xenocrates.py
 
 # Run it
 python3 xenocrates.py --help
 ```
+
+**Note:** If you only use CSV/TSV/JSON files, you don't need to install openpyxl. The script will show a helpful error message if you try to read an Excel file without it.
 
 ---
 
@@ -179,32 +200,66 @@ The Course column is now **optional** and auto-detected. Old xenocrates-gse.py f
 
 ## Examples
 
-### Example 1: Basic Usage
+### Example 1: Excel Format (Recommended)
 ```bash
 # Create your notes in Excel with columns: Title, Book, Page, Description
-# Save as notes.tsv
+# Keep as .xlsx - no need to export!
+python3 xenocrates.py notes.xlsx index.html
+```
+
+### Example 2: TSV Format
+```bash
+# Traditional tab-delimited format
 python3 xenocrates.py notes.tsv index.html
 ```
 
-### Example 2: CSV Format
+### Example 3: CSV Format
 ```bash
-# Save as CSV from Excel
+# Comma-delimited format
 python3 xenocrates.py notes.csv index.html
 ```
 
-### Example 3: GSE Multi-Course Index
+### Example 4: JSON Format
+```bash
+# JSON format (great for automation)
+python3 xenocrates.py notes.json index.html
+```
+
+**JSON format example:**
+```json
+{
+  "entries": [
+    {
+      "Title": "AES Encryption",
+      "Description": "Advanced Encryption Standard - 128/192/256 bit cipher",
+      "Page": "142",
+      "Book": "SEC401"
+    },
+    {
+      "Title": "Kerberos",
+      "Description": "Network authentication protocol",
+      "Page": "201",
+      "Book": "SEC505",
+      "Course": "SEC575"
+    }
+  ]
+}
+```
+
+### Example 5: GSE Multi-Course Index
 ```bash
 # For GSE exams covering multiple courses
 # Use 5 columns: Title, Description, Page, Book, Course
-python3 xenocrates.py gse-notes.tsv gse-index.html
+# Works with any format (Excel, CSV, TSV, JSON)
+python3 xenocrates.py gse-notes.xlsx gse-index.html
 
 # Output will show: {c-SEC575 / b-SEC505 / p-201}
 ```
 
-### Example 4: Check Output
+### Example 6: Check Output
 ```bash
 # Generate index
-python3 xenocrates.py notes.tsv index.html
+python3 xenocrates.py notes.xlsx index.html
 
 # Open in browser
 open index.html  # Mac
@@ -254,11 +309,14 @@ Warning: Found 2 duplicate entries (same title/book/page):
 ## What's New in Version 2.0
 
 - ✅ **Python 3.8+ support** (Python 2 no longer supported)
+- ✅ **Multiple input formats** - CSV, TSV, Excel (.xlsx), JSON
+- ✅ **Excel support** - Use .xlsx files directly, no export needed
+- ✅ **JSON support** - Great for automation and programmatic generation
 - ✅ **GSE Support** - Optional Course column for multi-course indexes
 - ✅ **Case-insensitive columns** - 'title' = 'Title' = 'TITLE'
 - ✅ **Flexible column order** - Columns can be in any order
 - ✅ **Smart error messages** - Typo suggestions like 'Titel' → 'Title'
-- ✅ **CSV auto-detection** - No need to specify delimiter
+- ✅ **Format auto-detection** - Automatically detects CSV, TSV, Excel, or JSON
 - ✅ **Direct file output** - No more `> index.html` redirection
 - ✅ **Duplicate detection** - Warns about duplicate entries
 - ✅ **Cross-platform** - Works on Mac, Windows, Linux
@@ -276,4 +334,6 @@ Original tool by @0sm0s1z. Modernization updates by community contributors.
 ## Contributing
 
 Found a bug? Have a suggestion? Please open an issue on GitHub!
+
+**For developers:** See [docs/dev/DEVELOPMENT.md](docs/dev/DEVELOPMENT.md) for development setup, testing, and code quality guidelines.
 
